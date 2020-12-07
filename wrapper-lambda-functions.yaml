@@ -1,0 +1,127 @@
+---
+AWSTemplateFormatVersion: "2010-09-09"
+
+Description: "Create AWS Lambda functions and IAM roles to interface with Amazon Personalize for Customer Intent Prediction Blog Article"
+
+Transform: AWS::Serverless-2016-10-31
+
+Parameters:
+
+  ResourceBucket:
+    Type: String
+    Description: S3 Bucket where the Resources are stored (cloudformation, data files, lambda code)
+
+  ResourceBucketKeyForGetRecommentationLambdaFunction:
+    Type: String
+    Description: S3 Bucket Path to the personalized-intent lambda function package (zip) 
+
+  ResourceBucketKeyForUpdateEventLambdaFunction:
+    Type: String
+    Description: S3 Bucket Path to the update-real-time-customer-interactions lambda function package (zip) 
+
+  PersonalizeRegion:
+    Type: String
+    Default: us-east-1
+    AllowedValues : 
+      - us-east-1
+    Description: The region where the personalize service is deployed.
+
+  PredictionConfidenceScoreHighThreshold:
+    Type: Number
+    Default: 0.80
+    AllowedValues :
+      - 0.90
+      - 0.85
+      - 0.80
+    Description: Minimum confidence score required to use customer intent prediction from Personalize service
+
+  PredictionConfidenceScoreLowThreshold:
+    Type: Number
+    Default: 0.60
+    AllowedValues : 
+      - 0.60
+      - 0.65
+      - 0.70
+    Description: Minimum confidence score required to use customer intent prediction from Personalize service
+
+  PersonalizeCampaignARN:
+    Type: String
+    Description: ARN of the deployed personalize campaign 
+
+  PersonalizeModelTrackingID:
+    Type: String
+    Description: Trackign ID of the deployed personalize model 
+
+Resources:
+
+  LambdaFunctionRole: 
+    Type: "AWS::IAM::Role"
+    Properties: 
+      AssumeRolePolicyDocument: 
+        Version: "2012-10-17"
+        Statement: 
+          - 
+            Effect: Allow
+            Principal: 
+              Service: 
+                - lambda.amazonaws.com
+            Action: 
+              - sts:AssumeRole
+      Path: "/service-role/"
+      Policies: 
+        - 
+          PolicyName: LambdaPersonalizePolicy
+          PolicyDocument: 
+            Version: "2012-10-17"
+            Statement:
+              - 
+                Effect: Allow 
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: 
+                  - !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/*:*:*"
+              - 
+                Effect: Allow
+                Action:
+                    - personalize:PutEvents
+                    - personalize:GetRecommendations
+                Resource: "*"
+  
+  GetRecommendationFunction:
+    Type: "AWS::Serverless::Function"
+    Properties:
+      FunctionName: !Sub "${AWS::StackName}-get-personalized-intent"
+      Handler: lambda_function.lambda_handler
+      CodeUri:
+        Bucket: !Ref ResourceBucket
+        Key: !Ref ResourceBucketKeyForGetRecommentationLambdaFunction
+      Description: Function for getting recommendation from the personalize service
+      Runtime: python3.7
+      Environment:
+        Variables:
+          REGION: !Ref PersonalizeRegion
+          HIGH_CONFIDENCE_THRESHOLD: !Ref PredictionConfidenceScoreHighThreshold
+          MID_CONFIDENCE_THRESHOLD: !Ref PredictionConfidenceScoreLowThreshold
+          PERSONALIZE_CAMPAIGN_ARN: !Ref PersonalizeCampaignARN
+      Role: !GetAtt LambdaFunctionRole.Arn
+      Timeout: 300
+
+  PutEventsFunction:
+    Type: "AWS::Serverless::Function"
+    Properties:
+      FunctionName: !Sub "${AWS::StackName}-update-real-time-customer-interactions"
+      Handler: lambda_function.lambda_handler
+      CodeUri:
+        Bucket: !Ref ResourceBucket
+        Key: !Ref ResourceBucketKeyForUpdateEventLambdaFunction
+      Description: Function for updating customer interaction data in real-time to the personalize service
+      Runtime: python3.7
+      Environment:
+        Variables:
+          REGION: !Ref PersonalizeRegion
+          PERSONALIZE_MODEL_TRACKING_ID: !Ref PersonalizeModelTrackingID
+      Role: !GetAtt LambdaFunctionRole.Arn
+      Timeout: 300
+      
