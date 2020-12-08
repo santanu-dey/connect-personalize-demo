@@ -21,62 +21,65 @@ This is implemented using
 # How to launch & run this demo?
 
 ## Step 1: Create Personalize resources using this predefined SageMaker notebook
-Click on the link below to launch a CloudFormation stack.  This CF template launches the necessary IAM roles and SageMaker notebooks.
+1. Click on the link below to launch a CloudFormation stack.  This CF template launches the necessary IAM roles and SageMaker notebooks.
 
-[![Launch CloudFormation Stack](images/cloudformation-launch-stack-1.png)](https://console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks/create/review?templateURL=https://aconnect-proserve-blogs.s3.amazonaws.com/PredictCustomerIntent/personalize-training-notebook.yaml&stackName=predict-ci-nb&param_ResourceBucket=aconnect-proserve-blogs&param_PersonalizeResourceBucketRelativePath=PredictCustomerIntent/personalize/sourcecode.zip)
+[![Launch CloudFormation Stack1](images/cloudformation-launch-stack-1.png)](https://console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks/create/review?templateURL=https://aconnect-proserve-blogs.s3.amazonaws.com/PredictCustomerIntent/personalize-training-notebook.yaml&stackName=predict-ci-nb&param_ResourceBucket=aconnect-proserve-blogs&param_PersonalizeResourceBucketRelativePath=PredictCustomerIntent/personalize/sourcecode.zip)
  
-Once the CloudFormation stack is launched in CREATE_COMPLETE state, you can then navigate to the SageMaker notebook instance launched by this service.  Please run all cells in the train_personalize_with_customer_and_contact_records.ipynb notebook.  This takes about ~70 mins. Please do not close the notebook window or put the computer to sleep during this time.
+2. Once the CloudFormation stack is launched in CREATE_COMPLETE state, you can then navigate to the SageMaker notebook instance launched by this service.  Please run all cells in the train_personalize_with_customer_and_contact_records.ipynb notebook.  This takes about ~70 mins. Please do not close the notebook window or put the computer to sleep during this time.
  
-After the cells have finished running, copy the values of campaign_arn and tracking_id variable outputs at the bottom of the notebook. 
+3. After the cells have finished running, copy the values of campaign_arn and tracking_id variable outputs at the bottom of the notebook. 
 personalize tracking id and campaign id
 
 ![Copy notebook output](images/predict_ci_image_09.png)
 
 ## Step 2: Launch Lambda Functions to invoke the Personalize service
-Click on the link below to launch a CloudFormation stack.  This CF template launches the necessary lambda functions.
+1. Click on the link below to launch a CloudFormation stack.  This CF template launches the necessary lambda functions.
 
-[![Launch CloudFormation Stack](images/cloudformation-launch-stack-1.png)](https://console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks/create/review?templateURL=https://aconnect-proserve-blogs.s3.amazonaws.com/PredictCustomerIntent/wrapper-lambda-functions.yaml&stackName=predict-ci-lf&param_ResourceBucket=aconnect-proserve-blogs&param_ResourceBucketKeyForUpdateEventLambdaFunction=PredictCustomerIntent/lambda/ccblog-update-real-time-customer-interactions-38d9b958-b7c9-4064-af7f-ddb06ced614b.zip&param_ResourceBucketKeyForGetRecommentationLambdaFunction=PredictCustomerIntent/lambda/ccblog-get-personalized-intent-d041341f-50b2-4017-8dee-3a885af2b0b9.zip&param_PersonalizeRegion=us-east-1&param_PredictionConfidenceScoreHighThreshold=0.8&param_PredictionConfidenceScoreLowThreshold=0.6&param_PersonalizeCampaignARN=Fill_this_in&param_PersonalizeModelTrackingID=Fill_this_in)
+[![Launch CloudFormation Stack2](images/cloudformation-launch-stack-2.png)](https://console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks/create/review?templateURL=https://aconnect-proserve-blogs.s3.amazonaws.com/PredictCustomerIntent/wrapper-lambda-functions.yaml&stackName=predict-ci-lf&param_ResourceBucket=aconnect-proserve-blogs&param_ResourceBucketKeyForUpdateEventLambdaFunction=PredictCustomerIntent/lambda/ccblog-update-real-time-customer-interactions-38d9b958-b7c9-4064-af7f-ddb06ced614b.zip&param_ResourceBucketKeyForGetRecommentationLambdaFunction=PredictCustomerIntent/lambda/ccblog-get-personalized-intent-d041341f-50b2-4017-8dee-3a885af2b0b9.zip&param_PersonalizeRegion=us-east-1&param_PredictionConfidenceScoreHighThreshold=0.8&param_PredictionConfidenceScoreLowThreshold=0.6&param_PersonalizeCampaignARN=Fill_this_in&param_PersonalizeModelTrackingID=Fill_this_in)
  
-In the create stack screen please fill-in the PersonalizeCampaignARN and PersonalizeModelTrackingID copied from the notebook console earlier.
+2. In the create stack screen please fill-in the PersonalizeCampaignARN and PersonalizeModelTrackingID copied from the notebook console earlier.
 
-predict_ci_image_10.png
+![Update parameter values](images/predict_ci_image_10.png)
  
-Complete launching the stack. 
+3. Complete launching the stack. 
 
 ## Step 3: Integrate the Amazon Connect instance with the prediction service
 Provision your Amazon Connect instance.  Make sure that the Amazon Connect instance has permissions to access this newly created AWS Lambda
 function by following these steps.
 
-From the AWS Management Console, open the Amazon Connect console.
-Select your Amazon Connect virtual contact center instance.
-Choose Contact flows and scroll down to the AWS Lambda section.
-On the Function drop-down menu, select predict-ci-lf-get-personalized-intent function and choose +Add Lambda Function.
-Again, on the Function drop-down menu, select predict-ci-lf-update-real-time-customer-intent function and choose +Add Lambda Function.
+1. From the AWS Management Console, open the Amazon Connect console.
+2. Select your Amazon Connect virtual contact center instance.
+3. Choose Contact flows and scroll down to the AWS Lambda section.
+4. On the Function drop-down menu, select predict-ci-lf-get-personalized-intent function and choose +Add Lambda Function.
+5. Again, on the Function drop-down menu, select predict-ci-lf-update-real-time-customer-intent function and choose +Add Lambda Function.
 Integrate Amazon Connect with Lambda function
 
+![Update lambda function references](images/predict_ci_image_21.png)
+
 ## Step 4: Import the Call Flow into Amazon Connect
-Download the pre-built contact flow from this link
-From the AWS Management Console, open the Amazon Connect console.
-Select your Amazon Connect virtual contact center instance and log in.
-On the navigation bar of the Amazon Connect console, choose Routing, Contact flows
-Choose Create contact flow button at the top-right.
-On the drop-down at the top-right, select Import flow.
-Choose Select and select the PredictCustomerIntentFlow file downloaded in bullet 1.
-On the contact flow, find the Invoke AWS Lambda function block. Open the settings for the block by selecting the header.
-Select the Lambda function predict-ci-lf-get-personalized-intent that you granted Amazon Connect permissions in "Step 3: Integrate the Amazon Connect instance with the prediction service" above.  
 
-Amazon Connect integration with Lambda
- 
-save. 
-Choose the header for the Invoke AWS Lambda function block (second row) and select the Lambda function predict-ci-lf-update-real-time-customer-intent.
+1. Download the pre-built contact flow from [this link](https://aconnect-proserve-blogs.s3.amazonaws.com/PredictCustomerIntent/PredictCustomerIntentFlow)
+2. From the AWS Management Console, open the Amazon Connect console.
+3. Select your Amazon Connect virtual contact center instance and log in.
+4. On the navigation bar of the Amazon Connect console, choose Routing, Contact flows
+5. Choose Create contact flow button at the top-right.
+6. On the drop-down at the top-right, select Import flow.
+7. Choose Select and select the PredictCustomerIntentFlow file downloaded in bullet 1.
+8. On the contact flow, find the Invoke AWS Lambda function block. Open the settings for the block by selecting the header.
+9. Select the Lambda function predict-ci-lf-get-personalized-intent that you granted Amazon Connect permissions in "Step 3: Integrate the Amazon Connect instance with the prediction service" above.  
 
-Amazon Connect and AWS Lambda
+![Amazon Connect integration with Lambda](images/predict_ci_image_18.png)
  
-save and publish
+10. Save. 
+11. Choose the header for the Invoke AWS Lambda function block (second row) and select the Lambda function predict-ci-lf-update-real-time-customer-intent.
+
+![Amazon Connect integration with Lambda](images/predict_ci_image_19.png)
+ 
+12. Save and publish.
 
 ## Step 5: Clean-up
-Open the clean_up_personalize_resources.ipynb notebook provided in the SageMaker notebook and run all cells
-Then delete the two CloudFormation stacks created in Step 1 and Step 2
+1. Open the clean_up_personalize_resources.ipynb notebook provided in the SageMaker notebook and run all cells
+2. Then delete the two CloudFormation stacks created in Step 1 and Step 2
 
 # Running the demo
 1. In your Amazon Connect instance, choose the Routing icon from the navigation bar, and choose Phone numbers.
