@@ -16,24 +16,26 @@ This is implemented using
 5. Otherwise, the Lambda function returns a value indicating that the model could not predict an intent for this interaction. The contact flow in Amazon Connect proceeds with the intent capture experience using either Amazon Lex (NLU), or a menu.
 6. Before the end of the call, the actual confirmed intent of the customer is fed back into the Amazon Personalize API. This is used for making future predictions for this caller. 
 
-predict_ci_image_architecture.png
+![Demo Architecture](images/predict_ci_image_architecture.png)
 
 # How to launch & run this demo?
 
 ## Step 1: Create Personalize resources using this predefined SageMaker notebook
 Click on the link below to launch a CloudFormation stack.  This CF template launches the necessary IAM roles and SageMaker notebooks.
 
-launch cloud formation stack
+[![Launch CloudFormation Stack](images/cloudformation-launch-stack-1.png)](https://console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks/create/review?templateURL=https://aconnect-proserve-blogs.s3.amazonaws.com/PredictCustomerIntent/personalize-training-notebook.yaml&stackName=predict-ci-nb&param_ResourceBucket=aconnect-proserve-blogs&param_PersonalizeResourceBucketRelativePath=PredictCustomerIntent/personalize/sourcecode.zip)
  
 Once the CloudFormation stack is launched in CREATE_COMPLETE state, you can then navigate to the SageMaker notebook instance launched by this service.  Please run all cells in the train_personalize_with_customer_and_contact_records.ipynb notebook.  This takes about ~70 mins. Please do not close the notebook window or put the computer to sleep during this time.
  
 After the cells have finished running, copy the values of campaign_arn and tracking_id variable outputs at the bottom of the notebook. 
 personalize tracking id and campaign id
 
+![Copy notebook output](images/predict_ci_image_09.png)
+
 ## Step 2: Launch Lambda Functions to invoke the Personalize service
 Click on the link below to launch a CloudFormation stack.  This CF template launches the necessary lambda functions.
 
-launch cloud formation stack
+[![Launch CloudFormation Stack](images/cloudformation-launch-stack-1.png)](https://console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks/create/review?templateURL=https://aconnect-proserve-blogs.s3.amazonaws.com/PredictCustomerIntent/wrapper-lambda-functions.yaml&stackName=predict-ci-lf&param_ResourceBucket=aconnect-proserve-blogs&param_ResourceBucketKeyForUpdateEventLambdaFunction=PredictCustomerIntent/lambda/ccblog-update-real-time-customer-interactions-38d9b958-b7c9-4064-af7f-ddb06ced614b.zip&param_ResourceBucketKeyForGetRecommentationLambdaFunction=PredictCustomerIntent/lambda/ccblog-get-personalized-intent-d041341f-50b2-4017-8dee-3a885af2b0b9.zip&param_PersonalizeRegion=us-east-1&param_PredictionConfidenceScoreHighThreshold=0.8&param_PredictionConfidenceScoreLowThreshold=0.6&param_PersonalizeCampaignARN=Fill_this_in&param_PersonalizeModelTrackingID=Fill_this_in)
  
 In the create stack screen please fill-in the PersonalizeCampaignARN and PersonalizeModelTrackingID copied from the notebook console earlier.
 
